@@ -21,20 +21,20 @@ A beautiful 3D digital shelf built with React Three Fiber to showcase your 3D mo
 ### Installation
 
 1. Install dependencies:
-```bash
+\`\`\`bash
 npm install
-```
+\`\`\`
 
 2. Start the development server:
-```bash
+\`\`\`bash
 npm run dev
-```
+\`\`\`
 
 3. Open your browser to `http://localhost:5173`
 
 ## Project Structure
 
-```
+\`\`\`
 digital-shelf/
 ├── src/
 │   ├── App.jsx          # Main component with the 3D shelf
@@ -43,7 +43,7 @@ digital-shelf/
 ├── index.html           # HTML template
 ├── package.json         # Dependencies
 └── vite.config.js      # Vite configuration
-```
+\`\`\`
 
 ## Adding Your 3D Models
 
@@ -52,14 +52,14 @@ Currently, the shelf uses placeholder boxes. To add your own 3D models:
 1. Place your `.glb` or `.gltf` files in a `public/models/` directory
 2. Import and use the `useGLTF` hook from `@react-three/drei`:
 
-```jsx
+\`\`\`jsx
 import { useGLTF } from '@react-three/drei'
 
 function ModelItem({ modelPath, ...props }) {
   const { scene } = useGLTF(modelPath)
   return <primitive object={scene} {...props} />
 }
-```
+\`\`\`
 
 3. Replace the `<boxGeometry>` in the `ModelItem` component with your loaded model
 
@@ -69,7 +69,7 @@ function ModelItem({ modelPath, ...props }) {
 
 Edit the `CATEGORIES` object in `src/App.jsx`:
 
-```jsx
+\`\`\`jsx
 const CATEGORIES = {
   YOUR_CATEGORY: { 
     color: "#your-color", 
@@ -77,7 +77,7 @@ const CATEGORIES = {
   },
   // ... more categories
 }
-```
+\`\`\`
 
 ### Adjusting Shelf Layout
 
@@ -91,9 +91,9 @@ The project uses Tailwind CSS. Modify classes in the JSX or extend the theme in 
 
 ## Build for Production
 
-```bash
+\`\`\`bash
 npm run build
-```
+\`\`\`
 
 The built files will be in the `dist/` directory.
 
@@ -109,4 +109,3 @@ The built files will be in the `dist/` directory.
 ## License
 
 MIT
-
