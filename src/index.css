@@ -1,19 +1,493 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --font-sans: 'Inter', sans-serif;
+}
+
 body {
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  font-family: var(--font-sans);
+  background-color: #0f0f0f;
+  color: white;
+  overflow: hidden;
 }
 
-#root {
+/* --- THE NOISE TEXTURE (Crucial for Realism) --- */
+.noise-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0.04; /* Adjust subtle grain here */
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
 
+/* --- 1. NAV PILL GLASS (Figma-style with pink tint & glowing border) --- */
+.glass-nav {
+  position: relative;
+  /* Base: frosted glass with subtle pink tint */
+  background: linear-gradient(
+    180deg,
+    rgba(255, 220, 240, 0.18) 0%,
+    rgba(255, 200, 230, 0.08) 30%,
+    rgba(240, 180, 220, 0.05) 60%,
+    rgba(255, 210, 235, 0.12) 100%
+  );
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border-radius: 9999px;
+  border: none;
+  
+  box-shadow: 
+    /* Outer glow - soft pink bloom */
+    0 0 30px rgba(255, 180, 220, 0.15),
+    0 0 60px rgba(255, 150, 200, 0.08),
+    /* Depth shadow */
+    0 8px 32px rgba(0, 0, 0, 0.25),
+    /* Inner highlights */
+    inset 0 1px 2px rgba(255, 255, 255, 0.35),
+    inset 0 -1px 1px rgba(255, 200, 230, 0.15);
+  padding: 8px 16px;
+  overflow: visible;
+  isolation: isolate;
+}
+
+/* Glowing gradient border - dull edges, bright center with bloom */
+.glass-nav::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 9999px;
+  padding: 1.5px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.15) 5%,
+    rgba(255, 255, 255, 0.4) 20%,
+    rgba(255, 255, 255, 0.85) 50%,
+    rgba(255, 255, 255, 0.4) 80%,
+    rgba(255, 255, 255, 0.15) 95%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+  /* Bloom/glow effect on the border */
+  filter: blur(0.5px);
+}
+
+/* Outer glow ring for soft bloom effect */
+.glass-nav::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 9999px;
+  background: transparent;
+  border: 2px solid transparent;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    transparent 15%,
+    rgba(255, 255, 255, 0.15) 35%,
+    rgba(255, 255, 255, 0.25) 50%,
+    rgba(255, 255, 255, 0.15) 65%,
+    transparent 85%,
+    transparent 100%
+  );
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  filter: blur(4px);
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+/* Active nav button - glossy pill with pink glow */
+.glass-nav-active {
+  position: relative;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 200, 230, 0.35) 0%,
+    rgba(255, 180, 220, 0.15) 30%,
+    rgba(240, 160, 200, 0.1) 60%,
+    rgba(255, 190, 225, 0.25) 100%
+  );
+  border-radius: 9999px;
+  border: none;
+  box-shadow: 
+    /* Pink inner glow */
+    inset 0 0 20px rgba(255, 150, 200, 0.3),
+    inset 0 0 40px rgba(255, 120, 180, 0.15),
+    /* Highlight edges */
+    inset 0 1px 2px rgba(255, 255, 255, 0.5),
+    inset 0 -1px 1px rgba(255, 200, 230, 0.2),
+    /* Outer subtle glow */
+    0 0 15px rgba(255, 150, 200, 0.2);
+  overflow: visible;
+  isolation: isolate;
+}
+
+/* Gradient border for active - brighter with pink tint */
+.glass-nav-active::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 9999px;
+  padding: 1.5px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 220, 240, 0.15) 0%,
+    rgba(255, 230, 245, 0.3) 15%,
+    rgba(255, 255, 255, 0.8) 35%,
+    rgba(255, 255, 255, 1) 50%,
+    rgba(255, 255, 255, 0.8) 65%,
+    rgba(255, 230, 245, 0.3) 85%,
+    rgba(255, 220, 240, 0.15) 100%
+  );
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+  filter: blur(0.3px);
+}
+
+/* Top reflection shine with pink tint */
+.glass-nav-active::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 15%;
+  right: 15%;
+  height: 50%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 230, 245, 0.2) 40%,
+    transparent 100%
+  );
+  border-radius: 9999px 9999px 50% 50%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* --- 2. MAIN CARD GLASS (Clear glass with pink tint & glowing border) --- */
+.glass-main {
+  position: relative;
+  /* Clear glass with very subtle pink tint */
+  background: linear-gradient(
+    160deg,
+    rgba(255, 220, 240, 0.08) 0%,
+    rgba(255, 200, 230, 0.03) 30%,
+    rgba(240, 180, 220, 0.02) 60%,
+    rgba(255, 210, 235, 0.06) 100%
+  );
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+  border: none;
+  
+  box-shadow: 
+    /* Outer glow - soft pink bloom */
+    0 0 50px rgba(255, 180, 220, 0.12),
+    0 0 100px rgba(255, 150, 200, 0.06),
+    /* Depth shadow */
+    0 25px 60px -15px rgba(0, 0, 0, 0.5),
+    0 10px 30px -10px rgba(0, 0, 0, 0.3),
+    /* Inner highlights */
+    inset 0 1px 2px rgba(255, 255, 255, 0.3),
+    inset 0 -1px 1px rgba(255, 200, 230, 0.15);
+  overflow: visible;
+  isolation: isolate;
+}
+
+/* Glowing gradient border - follows the rounded rectangle */
+.glass-main::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 40px;
+  padding: 1.5px;
+  /* Border gradient: dull corners, bright edges in the middle */
+  background: 
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0.6) 15%,
+      rgba(255, 255, 255, 0.85) 50%,
+      rgba(255, 255, 255, 0.6) 85%,
+      rgba(255, 255, 255, 0.1) 100%
+    );
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+  filter: blur(0.5px);
+}
+
+/* Outer glow ring for soft bloom effect */
+.glass-main::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 44px;
+  background: transparent;
+  background: 
+    linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.12) 20%,
+      rgba(255, 255, 255, 0.2) 50%,
+      rgba(255, 255, 255, 0.12) 80%,
+      transparent 100%
+    );
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: 3px;
+  filter: blur(6px);
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* --- 3. SIDEBAR THUMBNAILS (Figma-style with pink tint & glowing border) --- */
+.glass-thumb {
+  position: relative;
+  /* Frosted glass with subtle pink tint */
+  background: linear-gradient(
+    180deg,
+    rgba(255, 220, 240, 0.12) 0%,
+    rgba(255, 200, 230, 0.05) 40%,
+    rgba(240, 180, 220, 0.03) 60%,
+    rgba(255, 210, 235, 0.08) 100%
+  );
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: none;
+  box-shadow: 
+    /* Outer glow - soft pink bloom */
+    0 0 20px rgba(255, 180, 220, 0.1),
+    0 0 40px rgba(255, 150, 200, 0.05),
+    /* Depth shadow */
+    0 8px 20px rgba(0, 0, 0, 0.25),
+    /* Inner highlights */
+    inset 0 1px 1px rgba(255, 255, 255, 0.3),
+    inset 0 -1px 1px rgba(255, 200, 230, 0.1);
+  transition: all 0.3s ease;
+  overflow: visible;
+  isolation: isolate;
+}
+
+/* Glowing gradient border - dull corners, bright center */
+.glass-thumb::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 16px;
+  padding: 1px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.4) 20%,
+    rgba(255, 255, 255, 0.7) 50%,
+    rgba(255, 255, 255, 0.4) 80%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+  filter: blur(0.3px);
+  transition: all 0.3s ease;
+}
+
+/* Outer glow ring */
+.glass-thumb::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 19px;
+  padding: 2px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 25%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.1) 75%,
+    transparent 100%
+  );
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  filter: blur(4px);
+  pointer-events: none;
+  opacity: 0.6;
+  transition: all 0.3s ease;
+}
+
+.glass-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 210, 235, 0.2) 0%,
+    rgba(255, 190, 225, 0.1) 40%,
+    rgba(240, 170, 210, 0.06) 60%,
+    rgba(255, 200, 230, 0.15) 100%
+  );
+  transform: translateY(-2px);
+  box-shadow: 
+    0 0 25px rgba(255, 180, 220, 0.15),
+    0 0 50px rgba(255, 150, 200, 0.08),
+    0 12px 25px rgba(0, 0, 0, 0.3),
+    inset 0 1px 2px rgba(255, 255, 255, 0.4),
+    inset 0 -1px 1px rgba(255, 200, 230, 0.15);
+}
+
+.glass-thumb:hover::before {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.5) 20%,
+    rgba(255, 255, 255, 0.85) 50%,
+    rgba(255, 255, 255, 0.5) 80%,
+    rgba(255, 255, 255, 0.15) 100%
+  );
+}
+
+.glass-thumb:hover::after {
+  opacity: 0.8;
+}
+
+/* Active State (Glowing with pink glow) */
+.glass-active {
+  position: relative;
+  /* Stronger pink tint for active */
+  background: linear-gradient(
+    180deg,
+    rgba(255, 200, 230, 0.3) 0%,
+    rgba(255, 180, 220, 0.12) 40%,
+    rgba(240, 160, 200, 0.08) 60%,
+    rgba(255, 190, 225, 0.22) 100%
+  );
+  border: none;
+  box-shadow: 
+    /* Pink inner glow */
+    inset 0 0 25px rgba(255, 150, 200, 0.25),
+    inset 0 0 50px rgba(255, 120, 180, 0.12),
+    /* Outer glow */
+    0 0 25px rgba(255, 180, 220, 0.2),
+    0 0 50px rgba(255, 150, 200, 0.1),
+    /* Depth shadow */
+    0 10px 30px rgba(0, 0, 0, 0.25),
+    /* Inner highlights */
+    inset 0 1px 2px rgba(255, 255, 255, 0.45),
+    inset 0 -1px 1px rgba(255, 200, 230, 0.2);
+  overflow: visible;
+  isolation: isolate;
+}
+
+/* Active state gradient border - brighter */
+.glass-active::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 16px;
+  padding: 1.5px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 230, 245, 0.15) 0%,
+    rgba(255, 255, 255, 0.6) 15%,
+    rgba(255, 255, 255, 0.95) 50%,
+    rgba(255, 255, 255, 0.6) 85%,
+    rgba(255, 230, 245, 0.15) 100%
+  );
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+  filter: blur(0.3px);
+}
+
+/* Active state outer glow ring */
+.glass-active::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 20px;
+  padding: 3px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 20%,
+    rgba(255, 255, 255, 0.25) 50%,
+    rgba(255, 255, 255, 0.15) 80%,
+    transparent 100%
+  );
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  filter: blur(5px);
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+/* --- Scrollbar --- */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }

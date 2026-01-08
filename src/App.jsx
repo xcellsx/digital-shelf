@@ -1,264 +1,224 @@
-import React, { useState, useRef } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
-import { Html, Text, Environment, ContactShadows, Float, useGLTF } from '@react-three/drei'
-import * as THREE from 'three'
+import React, { useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, ShoppingBag } from 'lucide-react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { useGLTF, Environment, OrbitControls, ContactShadows } from '@react-three/drei';
+import * as THREE from 'three';
 
-// --- 1. DUMMY DATA FOR YOUR 4 CATEGORIES ---
-const CATEGORIES = {
-  HOME: { 
-    color: "#ff6b6b", 
-    items: Array.from({ length: 9 }, (_, i) => ({ 
-      label: `Home ${i+1}`, 
-      modelPath: null 
-    })) 
+// --- 1. Data (Unchanged) ---
+const perfumes = [
+  {
+    id: 1,
+    series: "Miss Dior",
+    name: "Blooming Bouquet",
+    brand: "Dior",
+    imagePath: "/images/blooming-bouquet.png", 
+    modelPath: "/models/blooming-bouquet.glb",
+    scentNotes: { high: "Peony, Mandarin", mid: "Rose, Pink Peppercorn", low: "White Musk" }
   },
-  CHARACTERS: { 
-    color: "#4ecdc4", 
-    items: [
-      { label: "Cinnamoroll", modelPath: "/models/cinna.glb" },
-      ...Array.from({ length: 8 }, (_, i) => ({ 
-        label: `Char ${i+2}`, 
-        modelPath: null 
-      }))
-    ] 
+  {
+    id: 2,
+    series: "Chanel",
+    name: "Chance Eau Tendre",
+    brand: "Chanel",
+    imagePath: "/images/chance.png",
+    modelPath: "/models/chance.glb",
+    scentNotes: { high: "Grapefruit, Quince", mid: "Jasmine, Hyacinth", low: "White Musk, Amber" }
   },
-  FLOWERS: { 
-    color: "#ffe66d", 
-    items: Array.from({ length: 9 }, (_, i) => ({ 
-      label: `Flower ${i+1}`, 
-      modelPath: null 
-    })) 
+  {
+    id: 3,
+    series: "YSL",
+    name: "Mon Paris",
+    brand: "YSL",
+    imagePath: "/images/mon-paris.png",
+    modelPath: "/models/mon-paris.glb",
+    scentNotes: { high: "Strawberry, Raspberry", mid: "Datura, Peony", low: "Patchouli, White Musk" }
   },
-  ITEMS: { 
-    color: "#1a535c", 
-    items: Array.from({ length: 9 }, (_, i) => ({ 
-      label: `Item ${i+1}`, 
-      modelPath: null 
-    })) 
-  },
-}
+];
 
-const CATEGORY_KEYS = Object.keys(CATEGORIES)
-
-// --- 2. COMPONENT TO LOAD AND DISPLAY 3D MODEL ---
-function LoadedModel({ modelPath }) {
-  const { scene } = useGLTF(modelPath)
-  const modelRef = useRef()
-  const box = useRef(new THREE.Box3())
-  const center = useRef(new THREE.Vector3())
-  const size = useRef(new THREE.Vector3())
+// --- 3D Components (Unchanged) ---
+function PerfumeModel3D({ modelPath, isInteractive }) {
+  const { scene } = useGLTF(modelPath);
+  const modelRef = useRef();
   
   React.useEffect(() => {
     if (scene) {
-      // Clone the scene to avoid conflicts
-      modelRef.current = scene.clone()
-      
-      // Calculate bounding box to center and scale the model
-      box.current.setFromObject(modelRef.current)
-      box.current.getCenter(center.current)
-      box.current.getSize(size.current)
-      
-      // Center the model
-      modelRef.current.position.sub(center.current)
-      
-      // Scale to fit within ~1 unit
-      const maxDimension = Math.max(size.current.x, size.current.y, size.current.z)
-      if (maxDimension > 0) {
-        modelRef.current.scale.multiplyScalar(1 / maxDimension)
-      }
+      const cloned = scene.clone();
+      const box = new THREE.Box3().setFromObject(cloned);
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      cloned.position.sub(center);
+      const maxDim = Math.max(size.x, size.y, size.z);
+      if (maxDim > 0) cloned.scale.multiplyScalar(3.2 / maxDim);
+      modelRef.current = cloned;
     }
-  }, [scene])
-  
-  if (!modelRef.current) return null
-  
-  return <primitive object={modelRef.current} />
-}
-
-// --- 3. INDIVIDUAL MODEL COMPONENT (Loads .glb files or shows placeholder) ---
-function ModelItem({ label, color, position, onClick, modelPath }) {
-  const [hovered, setHover] = useState(false)
-  
-  return (
-    <group position={position}>
-      <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
-        <group
-          onClick={onClick}
-          onPointerOver={() => setHover(true)}
-          onPointerOut={() => setHover(false)}
-          scale={hovered ? 1.1 : 1}
-        >
-          {modelPath ? (
-            // Render the loaded 3D model
-            <LoadedModel modelPath={modelPath} />
-          ) : (
-            // Placeholder box for items without models
-            <mesh>
-              <boxGeometry args={[0.8, 0.8, 0.8]} /> 
-              <meshStandardMaterial color={color} roughness={0.3} metalness={0.8} />
-            </mesh>
-          )}
-        </group>
-      </Float>
-      {/* Simple Label */}
-      <Text position={[0, -0.6, 0.5]} fontSize={0.15} color="black" anchorX="center">
-        {label}
-      </Text>
-    </group>
-  )
-}
-
-// --- 4. THE 3x3 SHELF FACE ---
-function ShelfFace({ categoryKey, rotation, position }) {
-  const data = CATEGORIES[categoryKey]
-  
-  // Create 3x3 Grid Coordinates
-  // Spacing is 1.2 units apart
-  const gridPositions = []
-  for (let x = -1; x <= 1; x++) {
-    for (let y = -1; y <= 1; y++) {
-      gridPositions.push([x * 1.2, y * 1.2, 0])
-    }
-  }
-
-  return (
-    <group rotation={rotation} position={position}>
-      {/* The Glass Panel Background */}
-      <mesh position={[0, 0, -0.5]}>
-        <planeGeometry args={[4, 4]} />
-        <meshPhysicalMaterial 
-          color="white" 
-          transmission={0.9} // Glass effect
-          opacity={0.5}
-          roughness={0} 
-          thickness={0.5} 
-          transparent
-        />
-      </mesh>
-      
-      {/* The 9 Items */}
-      {gridPositions.map((pos, i) => {
-        const item = data.items[i]
-        return (
-          <ModelItem 
-            key={i} 
-            position={pos} 
-            color={data.color} 
-            label={item.label || item} 
-            modelPath={item.modelPath}
-            onClick={(e) => {
-              e.stopPropagation()
-              alert(`You clicked ${item.label || item}`) // Replace with zoom logic later
-            }}
-          />
-        )
-      })}
-      
-      {/* Category Title on top of shelf */}
-      <Text position={[0, 2.2, 0]} fontSize={0.4} color="#333" anchorX="center">
-        {categoryKey}
-      </Text>
-    </group>
-  )
-}
-
-// --- 5. ANIMATED CABINET GROUP ---
-function RotatingCabinet({ targetRotationY }) {
-  const groupRef = useRef()
-  const currentRotation = useRef(0)
+  }, [scene]);
 
   useFrame((state, delta) => {
-    if (groupRef.current) {
-      // Smooth interpolation towards target rotation
-      const target = targetRotationY
-      const current = currentRotation.current
-      const diff = target - current
-      
-      // Normalize angle difference to shortest path
-      let normalizedDiff = diff
-      if (normalizedDiff > Math.PI) normalizedDiff -= Math.PI * 2
-      if (normalizedDiff < -Math.PI) normalizedDiff += Math.PI * 2
-      
-      // Spring-like interpolation
-      currentRotation.current += normalizedDiff * 0.1
-      groupRef.current.rotation.y = currentRotation.current
+    if (modelRef.current && !isInteractive) {
+      modelRef.current.rotation.y += delta * 0.2;
     }
-  })
+  });
 
-  return (
-    <group ref={groupRef}>
-      {/* Cabinet Geometry:
-        We place 4 faces, each rotated 90 degrees 
-        and pushed out by 2 units (half the box width)
-      */}
-      
-      {/* FRONT */}
-      <ShelfFace categoryKey="HOME" rotation={[0, 0, 0]} position={[0, 0, 2]} />
-      
-      {/* RIGHT */}
-      <ShelfFace categoryKey="CHARACTERS" rotation={[0, Math.PI / 2, 0]} position={[2, 0, 0]} />
-      
-      {/* BACK */}
-      <ShelfFace categoryKey="FLOWERS" rotation={[0, Math.PI, 0]} position={[0, 0, -2]} />
-      
-      {/* LEFT */}
-      <ShelfFace categoryKey="ITEMS" rotation={[0, -Math.PI / 2, 0]} position={[-2, 0, 0]} />
-    </group>
-  )
+  if (!modelRef.current) return null;
+  return <primitive object={modelRef.current} />;
 }
 
-// --- 6. THE MAIN SCENE ---
-function PortfolioApp() {
-  const [activeCategoryIndex, setActiveCategoryIndex] = useState(0)
-
-  // Preload all models for better performance
-  React.useEffect(() => {
-    Object.values(CATEGORIES).forEach(category => {
-      category.items.forEach(item => {
-        if (item.modelPath) {
-          useGLTF.preload(item.modelPath)
-        }
-      })
-    })
-  }, [])
-
-  // Rotate the cabinet based on active index (90 degrees per category)
-  const targetRotationY = activeCategoryIndex * -(Math.PI / 2)
-
+function ModelView({ modelPath, isInteractive, onToggle }) {
   return (
-    <div className="w-full h-screen bg-gray-100 relative">
-      
-      {/* --- UI OVERLAY (The 3D Buttons you mentioned) --- */}
-      <div className="absolute top-10 left-0 w-full flex justify-center gap-4 z-10">
-        {CATEGORY_KEYS.map((cat, index) => (
-          <button
-            key={cat}
-            onClick={() => setActiveCategoryIndex(index)}
-            className={`px-6 py-2 rounded-full font-bold transition-all shadow-lg ${
-              activeCategoryIndex === index 
-                ? 'bg-black text-white scale-110' 
-                : 'bg-white text-black hover:bg-gray-200'
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
-
-      {/* --- 3D CANVAS --- */}
-      <Canvas shadows camera={{ position: [0, 0, 8], fov: 45 }}>
-        <color attach="background" args={['#f0f0f0']} />
+    <div className="w-full h-full relative cursor-pointer" onClick={onToggle}>
+      <Canvas camera={{ position: [0, 1, 6], fov: 45 }} className="bg-transparent">
         <ambientLight intensity={0.5} />
-        <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} castShadow />
+        <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} />
         <Environment preset="city" />
-
-        {/* ROTATING CABINET GROUP */}
-        <RotatingCabinet targetRotationY={targetRotationY} />
-
-        <ContactShadows position={[0, -3, 0]} opacity={0.4} scale={10} blur={2.5} far={4} />
+        <ContactShadows position={[0, -2, 0]} opacity={0.5} scale={10} blur={2} far={4} color="black" />
+        {isInteractive && <OrbitControls enableZoom={false} />}
+        <PerfumeModel3D modelPath={modelPath} isInteractive={isInteractive} />
       </Canvas>
+      {!isInteractive && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/50 text-[10px] uppercase tracking-[0.2em] pointer-events-none">
+          Click to View 360°
+        </div>
+      )}
     </div>
-  )
+  );
 }
 
-export default PortfolioApp
+// --- MAIN APP COMPONENT ---
+const App = () => {
+  const [selectedPerfume, setSelectedPerfume] = useState(perfumes[0]);
+  const [isInteractive, setIsInteractive] = useState(false);
+  const [activeNav, setActiveNav] = useState('Home');
 
+  return (
+    <div className="relative w-full h-screen overflow-hidden bg-[#1a1a1a] text-white font-['Inter']">
+      
+      {/* 0. NOISE TEXTURE (The Figma "Grain" Effect) */}
+      <div className="noise-overlay" />
+
+      {/* 1. BACKGROUND IMAGE */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center transition-all duration-1000"
+        style={{
+          backgroundImage: "url('/images/tree.png')",
+          filter: "brightness(0.75) contrast(1.1) blur(0px)",
+          transform: "scale(1.05)"
+        }}
+      />
+      
+      {/* 2. TOP NAVIGATION */}
+      <nav className="relative z-20 flex items-center justify-between px-10 py-6">
+        <div className="flex items-center gap-2">
+           <span className="text-[12px] font-medium glass-nav">Perfume Collection</span>
+        </div>
+
+        {/* --- Center Pills (Applied glass-nav) --- */}
+        <div className="absolute inset-x-0 mx-auto w-fit flex gap-1.5 p-1.5 glass-nav">
+          {['Home', 'By Brand', 'By Type'].map((item) => (
+            <button
+              key={item}
+              onClick={() => setActiveNav(item)}
+              className={`px-6 py-2.5 rounded-full text-[12px] transition-all duration-300 ${
+                activeNav === item
+                  ? 'text-white font-semibold glass-nav-active' 
+                  : 'text-white/60 font-medium hover:text-white/90 hover:bg-white/10'
+              }`}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+
+        {/* --- Right Actions (Applied glass-nav) --- */}
+        <div className="flex gap-4">
+            <button className="flex items-center justify-center glass-nav hover:bg-white/10 transition"><Search size={16} /></button>
+        </div>
+      </nav>
+
+      {/* 3. MAIN CONTENT GRID */}
+      <main className="relative z-10 w-full h-[85vh] flex p-10 gap-8 items-center justify-center max-w-[1600px] mx-auto">
+        
+         {/* LEFT: Sidebar Strip */}
+         <div className="flex flex-col gap-4 w-48 h-[600px] overflow-y-auto overflow-x-hidden custom-scrollbar py-2 px-1">
+            {perfumes.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => { setSelectedPerfume(p); setIsInteractive(false); }}
+                // Applied glass-thumb and glass-active
+                className={`relative w-full max-w-full aspect-square rounded-2xl p-3 transition-all duration-300 group overflow-hidden box-border ${
+                  selectedPerfume.id === p.id 
+                     ? 'glass-active scale-105' 
+                     : 'glass-thumb opacity-70 hover:opacity-100 hover:scale-105'
+                }`}
+              >
+                 <img 
+                   src={p.imagePath} 
+                   className="w-full h-full object-contain drop-shadow-md pointer-events-none" 
+                   alt={p.name}
+                 />
+                 {selectedPerfume.id === p.id && (
+                     <div className="absolute right-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-white/80 rounded-full blur-[2px]" />
+                 )}
+              </button>
+            ))}
+         </div>
+
+        {/* RIGHT: Main Hero Card (Applied glass-main) */}
+        <motion.div 
+            key={selectedPerfume.id}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            // THIS IS THE MAIN GLASS PANEL
+            className="flex-1 max-w-5xl h-[600px] glass-main rounded-[40px] flex overflow-hidden"
+        >
+            
+            {/* A. 3D Model Area (Left Half) */}
+            <div className="flex-1 relative bg-gradient-to-b from-white/5 to-transparent">
+                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.08),transparent_70%)] pointer-events-none" />
+                 <ModelView 
+                    modelPath={selectedPerfume.modelPath}
+                    isInteractive={isInteractive}
+                    onToggle={() => setIsInteractive(!isInteractive)}
+                 />
+            </div>
+
+            {/* B. Content Area (Right Half) */}
+            <div className="flex-1 p-12 flex flex-col justify-center relative">
+                
+                <h3 className="text-sm font-bold tracking-[0.3em] uppercase text-white/60 mb-4">
+                    {selectedPerfume.series}
+                </h3>
+                
+                <h1 className="text-[48px] font-semibold text-white leading-tight mb-8">
+                    {selectedPerfume.name}
+                </h1>
+
+                <div className="space-y-6 mb-12">
+                   <div className="border-l-2 border-white/20 pl-6">
+                      <p className="text-xs uppercase tracking-widest text-white/50 mb-1">High Notes</p>
+                      <p className="text-lg font-light text-white">{selectedPerfume.scentNotes.high}</p>
+                   </div>
+                   <div className="border-l-2 border-white/20 pl-6">
+                      <p className="text-xs uppercase tracking-widest text-white/50 mb-1">Heart Notes</p>
+                      <p className="text-lg font-light text-white">{selectedPerfume.scentNotes.mid}</p>
+                   </div>
+                   <div className="border-l-2 border-white/20 pl-6">
+                      <p className="text-xs uppercase tracking-widest text-white/50 mb-1">Base Notes</p>
+                      <p className="text-lg font-light text-white">{selectedPerfume.scentNotes.low}</p>
+                   </div>
+                </div>
+
+                <div className="flex items-center justify-between border-t border-white/10 pt-8 mt-auto">
+                    <span className="text-[24px] font-semibold">{selectedPerfume.brand}</span>
+                </div>
+
+            </div>
+        </motion.div>
+
+      </main>
+    </div>
+  );
+};
+
+export default App;
