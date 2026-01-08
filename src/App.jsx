@@ -18,13 +18,16 @@ const perfumes = [
   },
   {
     id: 2,
-    series: "Chanel",
-    name: "Chance Eau Tendre",
-    brand: "Chanel",
-    imagePath: "/images/chance.png",
-    modelPath: "/models/chance.glb",
-    scentNotes: { high: "Grapefruit, Quince", mid: "Jasmine, Hyacinth", low: "White Musk, Amber" }
-  },
+    series: "Miss Dior",
+    name: "Rose N' Roses",
+    brand: "Dior",
+    imagePath: "/images/rosenroses.png",
+    modelPath: "/models/rosenroses.glb",
+    scentNotes: { 
+      high: "Italian Mandarin, Bergamot, Geranium", 
+      mid: "Grasse Rose, Damask Rose", 
+      low: "White Musk" 
+    }  },
   {
     id: 3,
     series: "YSL",
