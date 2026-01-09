@@ -12,6 +12,7 @@ const perfumes = [
     series: "Miss Dior",
     name: "Blooming Bouquet",
     brand: "Dior",
+    type: "spray",
     imagePath: "/images/blooming-bouquet.png", 
     modelPath: "/models/blooming-bouquet.glb",
     scentNotes: { high: "Peony, Mandarin", mid: "Rose, Pink Peppercorn", low: "White Musk" }
@@ -21,21 +22,28 @@ const perfumes = [
     series: "Miss Dior",
     name: "Rose N' Roses",
     brand: "Dior",
+    type: "spray",
     imagePath: "/images/rosenroses.png",
     modelPath: "/models/rosenroses.glb",
     scentNotes: { 
       high: "Italian Mandarin, Bergamot, Geranium", 
       mid: "Grasse Rose, Damask Rose", 
       low: "White Musk" 
-    }  },
+    }
+  },
   {
     id: 3,
-    series: "YSL",
-    name: "Mon Paris",
-    brand: "YSL",
-    imagePath: "/images/mon-paris.png",
-    modelPath: "/models/mon-paris.glb",
-    scentNotes: { high: "Strawberry, Raspberry", mid: "Datura, Peony", low: "Patchouli, White Musk" }
+    series: "Miss Dior",
+    name: "Parfum",
+    brand: "Dior",
+    type: "spray",
+    imagePath: "/images/parfum.png",
+    modelPath: "/models/parfum.glb",
+    scentNotes: { 
+      high: "Mandarin", 
+      mid: "Starry Jasmine, Fruity Facets", 
+      low: "Ambery Woods" 
+    }
   },
 ];
 
@@ -92,6 +100,41 @@ const App = () => {
   const [selectedPerfume, setSelectedPerfume] = useState(perfumes[0]);
   const [isInteractive, setIsInteractive] = useState(false);
   const [activeNav, setActiveNav] = useState('Home');
+  const [selectedFilter, setSelectedFilter] = useState(null);
+
+  // Extract unique series and types
+  const uniqueSeries = [...new Set(perfumes.map(p => p.series))];
+  const uniqueTypes = [...new Set(perfumes.map(p => p.type))];
+
+  // Filter perfumes based on active nav and selected filter
+  const filteredPerfumes = React.useMemo(() => {
+    if (activeNav === 'Home' || !selectedFilter) {
+      return perfumes;
+    }
+    if (activeNav === 'By Series') {
+      return perfumes.filter(p => p.series === selectedFilter);
+    }
+    if (activeNav === 'By Type') {
+      return perfumes.filter(p => p.type === selectedFilter);
+    }
+    return perfumes;
+  }, [activeNav, selectedFilter]);
+
+  // Reset selected perfume when filter changes
+  React.useEffect(() => {
+    if (filteredPerfumes.length > 0 && !filteredPerfumes.find(p => p.id === selectedPerfume.id)) {
+      setSelectedPerfume(filteredPerfumes[0]);
+    }
+  }, [filteredPerfumes]);
+
+  const handleNavClick = (nav) => {
+    setActiveNav(nav);
+    setSelectedFilter(null); // Reset filter when switching nav
+  };
+
+  const handleFilterClick = (filterValue) => {
+    setSelectedFilter(filterValue);
+  };
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-[#1a1a1a] text-white font-['Inter']">
@@ -110,40 +153,70 @@ const App = () => {
       />
       
       {/* 2. TOP NAVIGATION */}
-      <nav className="relative z-20 flex items-center justify-between px-10 py-6">
-        <div className="flex items-center gap-2">
-           <span className="text-[12px] font-medium glass-nav">Perfume Collection</span>
-        </div>
+      <div className="relative z-20">
+        <nav className="relative flex items-center justify-between px-10 py-6">
+          <div className="flex items-center gap-2">
+             <span className="text-[12px] font-medium glass-nav">Perfume Collection</span>
+          </div>
 
-        {/* --- Center Pills (Applied glass-nav) --- */}
-        <div className="absolute inset-x-0 mx-auto w-fit flex gap-1.5 p-1.5 glass-nav">
-          {['Home', 'By Brand', 'By Type'].map((item) => (
-            <button
-              key={item}
-              onClick={() => setActiveNav(item)}
-              className={`px-6 py-2.5 rounded-full text-[12px] transition-all duration-300 ${
-                activeNav === item
-                  ? 'text-white font-semibold glass-nav-active' 
-                  : 'text-white/60 font-medium hover:text-white/90 hover:bg-white/10'
-              }`}
-            >
-              {item}
-            </button>
-          ))}
-        </div>
+          {/* --- Center Pills (Applied glass-nav) --- */}
+          <div className="absolute inset-x-0 mx-auto w-fit">
+            <div className="flex gap-1.5 p-1.5 glass-nav">
+              {['Home', 'By Series', 'By Type'].map((item) => (
+                <button
+                  key={item}
+                  onClick={() => handleNavClick(item)}
+                  className={`px-6 py-2.5 rounded-full text-[12px] transition-all duration-300 ${
+                    activeNav === item
+                      ? 'text-white font-semibold glass-nav-active' 
+                      : 'text-white/60 font-medium hover:text-white/90 hover:bg-white/10'
+                  }`}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
 
-        {/* --- Right Actions (Applied glass-nav) --- */}
-        <div className="flex gap-4">
-            <button className="flex items-center justify-center glass-nav hover:bg-white/10 transition"><Search size={16} /></button>
-        </div>
-      </nav>
+          {/* --- Right Actions (Applied glass-nav) --- */}
+          <div className="flex gap-4">
+              <button className="flex items-center justify-center glass-nav hover:bg-white/10 transition"><Search size={16} /></button>
+          </div>
+        </nav>
+
+        {/* Filter Buttons - Show when By Series or By Type is active */}
+        {(activeNav === 'By Series' || activeNav === 'By Type') && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="flex justify-center pb-4"
+          >
+            <div className="flex gap-1.5 p-1.5 glass-nav">
+              {(activeNav === 'By Series' ? uniqueSeries : uniqueTypes).map((filterValue) => (
+                <button
+                  key={filterValue}
+                  onClick={() => handleFilterClick(filterValue)}
+                  className={`py-2 px-4 rounded-full text-[12px] transition-all duration-300 capitalize ${
+                    selectedFilter === filterValue
+                      ? 'text-white font-semibold glass-nav-active' 
+                      : 'text-white/60 font-medium hover:text-white/90 hover:bg-white/10'
+                  }`}
+                >
+                  {filterValue}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </div>
 
       {/* 3. MAIN CONTENT GRID */}
-      <main className="relative z-10 w-full h-[85vh] flex p-10 gap-8 items-center justify-center max-w-[1600px] mx-auto">
+      <main className={`relative z-10 w-full flex p-10 gap-8 items-center justify-center max-w-[1600px] mx-auto ${(activeNav === 'By Series' || activeNav === 'By Type') ? 'h-[calc(85vh-80px)]' : 'h-[85vh]'}`}>
         
          {/* LEFT: Sidebar Strip */}
          <div className="flex flex-col gap-4 w-48 h-[600px] overflow-y-auto overflow-x-hidden custom-scrollbar py-2 px-1">
-            {perfumes.map((p) => (
+            {filteredPerfumes.map((p) => (
               <button
                 key={p.id}
                 onClick={() => { setSelectedPerfume(p); setIsInteractive(false); }}
@@ -209,6 +282,10 @@ const App = () => {
                    <div className="border-l-2 border-white/20 pl-6">
                       <p className="text-xs uppercase tracking-widest text-white/50 mb-1">Base Notes</p>
                       <p className="text-lg font-light text-white">{selectedPerfume.scentNotes.low}</p>
+                   </div>
+                   <div className="border-l-2 border-white/20 pl-6">
+                      <p className="text-xs uppercase tracking-widest text-white/50 mb-1">Type</p>
+                      <p className="text-lg font-light text-white capitalize">{selectedPerfume.type}</p>
                    </div>
                 </div>
 
